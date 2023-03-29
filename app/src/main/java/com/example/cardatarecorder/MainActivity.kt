@@ -3,8 +3,10 @@ package com.example.cardatarecorder
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.ContentValues
 import android.content.Context
+import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -23,6 +25,7 @@ import android.os.Environment
 import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.util.Log
+import android.view.WindowManager
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
@@ -64,8 +67,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     private var recording: Recording? = null
     private lateinit var cmd_start_record: ImageButton
     private lateinit var cmd_take_img: ImageButton
+    private lateinit var cmd_change_resolution: ImageButton
 
-    private lateinit var cameraExecutor: ExecutorService
+    //private lateinit var cameraExecutor: ExecutorService
 
     private lateinit var locationManager: LocationManager
 
@@ -73,11 +77,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         //viewBinding = ActivityMainBinding.inflate(layoutInflater)
         //setContentView(viewBinding.root)
-
-
         txt_gps = findViewById(R.id.gps)
         lin_pos = findViewById(R.id.linear_pos)
         linear = findViewById(R.id.linear)
@@ -85,6 +88,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         cmd_start_record = findViewById(R.id.cmd_start_record)
         cmd_take_img = findViewById(R.id.cmd_take_img)
         preview_view = findViewById(R.id.preview_view)
+        cmd_change_resolution = findViewById(R.id.cmd_change_resolution)
 
         // setup sensors
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -103,6 +107,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         // Set up the listeners for take photo and video capture buttons
         cmd_take_img.setOnClickListener{takePhoto()}
         cmd_start_record.setOnClickListener {captureVideo()}
+        cmd_change_resolution.setOnClickListener {change_resolution()}
 
         // set up GPS
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -110,7 +115,26 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             Log.d(TAG, "No permission for GPS - fine location")
         }
         else {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 5f, this)
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 5f, this)
+        }
+
+    }
+
+    private fun change_resolution() {
+        val builder = AlertDialog.Builder(this)
+        val resolutions = arrayOf("UHD","FHD","HD","Highest","SD","Lowest")
+        val resolution_quality = arrayOf(Quality.UHD, Quality.FHD, Quality.HD,Quality.HIGHEST,Quality.SD,Quality.LOWEST)
+        var chosen_resolution = 0
+        with(builder) {
+            setTitle("Choose image quality")
+            setItems(resolutions) {dialog, which ->
+                Log.d(TAG, "Inside Clicked on ${which}")
+                chosen_resolution = which
+                // set comp variable chosen_quality
+                chosen_quality = resolution_quality[which]
+                startCamera()
+            }
+            show()
         }
 
     }
@@ -134,7 +158,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                 .build()
 
             val recorder = Recorder.Builder()
-                .setQualitySelector(QualitySelector.from(Quality.HIGHEST))
+                .setQualitySelector(QualitySelector.from(chosen_quality))
                 .build()
             videoCapture = VideoCapture.withOutput(recorder)
 
@@ -310,6 +334,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
 
     override fun onResume() {
         super.onResume()
+        sensorManager.registerListener(this, mLinear, SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL)
     }
 
     override fun onPause() {
@@ -320,7 +345,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     override fun onDestroy() {
         sensorManager.unregisterListener(this)
         super.onDestroy()
-        cameraExecutor.shutdown()
+        //cameraExecutor.shutdown()
 
     }
 
@@ -358,7 +383,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             linear.text = "[${lin_acc[0].toInt()}, ${lin_acc[1].toInt()}, ${lin_acc[2].toInt()}]"
 
             // data to record
-            sensor_entry = sensor_data(event.timestamp, lin_acc[0], lin_acc[1], lin_acc[2], 0, 0, 0f,0f)
+            sensor_entry = sensor_data(event.timestamp, lin_acc[0], lin_acc[1], lin_acc[2], 0, 0, 0f,0f, 0f)
 
         }
     }
@@ -385,8 +410,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                 // get csv from list: list_sensor_entry.joinToString{it -> "\'${it.accel_x}\'"}
                 //list_sensor_entry.joinToString{it -> "\'${it.accel_x}\',\'${it.accel_y}\'\n"}
                 // see https://medium.com/@SindkarP/a-simple-use-of-jointostring-kotlin-function-to-get-comma-separated-strings-for-sqlite-cbece2bcb499
-                val str_header = "Timestamp, Accel. x, Accel. y, Accel. z, Timestamp Video, Frame No., Longitude, Latitude\n"
-                val str_csv = list_sensor_entry.joinToString(separator = "\n"){entry -> "${entry.timestamp},${entry.accel_x},${entry.accel_y},${entry.accel_z},${entry.timestamp_videoframe},${entry.frame},${entry.long},${entry.lat}"}
+                val str_header = "Timestamp, Accel. x, Accel. y, Accel. z, Timestamp Video, Frame No., Longitude, Latitude, Speed\n"
+                val str_csv = list_sensor_entry.joinToString(separator = "\n"){entry -> "${entry.timestamp},${entry.accel_x},${entry.accel_y},${entry.accel_z},${entry.timestamp_videoframe},${entry.frame},${entry.long},${entry.lat},${entry.speed}"}
 
                 writer?.write(str_header + str_csv)
                 writer?.close()
@@ -405,8 +430,14 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                 list_sensor_entry = mutableListOf<sensor_data>(sensor_entry)
 
             } else if (is_end) {
+                // need to correct timestamp --> subtract timestamp of first measurement as offset
+                //sensor_entry.timestamp -= list_sensor_entry[0].timestamp
+
                 // add new entry at end
                 list_sensor_entry.add(sensor_entry)
+
+                // change first timestamp to 0
+                //list_sensor_entry[0].timestamp = 0
 
                 // create file with Intent
                 var name = SimpleDateFormat(FILENAME_FORMAT, Locale.US)
@@ -421,6 +452,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                 get_csv_file.launch(intent)
 
             } else {
+                // need to correct timestamp --> subtract timestamp of first measurement as offset
+                //sensor_entry.timestamp -= list_sensor_entry[0].timestamp
                 // add new entry
                 list_sensor_entry.add(sensor_entry)
             }
@@ -464,20 +497,23 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             var timestamp_videoframe: Long,
             var frame: Long,
             var long: Float,
-            var lat: Float
+            var lat: Float,
+            var speed: Float
         )
 
-        private var sensor_entry = sensor_data(0,0f,0f,0f,0, 0, 0f, 0f)
+        private var sensor_entry = sensor_data(0,0f,0f,0f,0, 0, 0f, 0f, 0f)
         private var list_sensor_entry = mutableListOf<sensor_data>()
-        private var timestamp_videoframe: Long = 0
         private var frame_number: Long = 0
+        private var start_frame: Long = 0
+        private var chosen_quality = Quality.LOWEST
     }
 
     override fun onLocationChanged(p0: Location) {
         sensor_entry.long = p0.longitude.toFloat()
         sensor_entry.lat = p0.latitude.toFloat()
+        sensor_entry.speed = p0.speed
 
-        txt_gps.setText("Long: ${sensor_entry.long}\n Lat: ${sensor_entry.lat}")
+        txt_gps.setText("Long: ${sensor_entry.long}\n Lat: ${sensor_entry.lat}\n speed: ${sensor_entry.speed}")
     }
 
 }

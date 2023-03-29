@@ -20,7 +20,6 @@
             android:orientation="vertical"
             app:layout_constraintGuide_percent="0.05"/>
 
-
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/constraint_guideline_vertical_020"
             android:layout_width="wrap_content"
@@ -43,6 +42,13 @@
             app:layout_constraintGuide_percent="0.6"/>
 
         <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/constraint_guideline_vertical_08"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.8"/>
+
+        <androidx.constraintlayout.widget.Guideline
             android:id="@+id/constraint_guideline_vertical_095"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -51,35 +57,42 @@
 
         <!--region horizontal guide lines-->
         <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/constraint_guideline_horizontal_1"
+            android:id="@+id/constraint_guideline_horizontal_005"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.075"/>
+            app:layout_constraintGuide_percent="0.05"/>
 
         <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/constraint_guideline_horizontal_2"
+            android:id="@+id/constraint_guideline_horizontal_015"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             app:layout_constraintGuide_percent="0.15"/>
 
         <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/constraint_guideline_horizontal_3"
+            android:id="@+id/constraint_guideline_horizontal_04"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             app:layout_constraintGuide_percent="0.4"/>
 
         <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/constraint_guideline_horizontal_4"
+            android:id="@+id/constraint_guideline_horizontal_06"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             app:layout_constraintGuide_percent="0.6"/>
 
         <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/constraint_guideline_horizontal_5"
+            android:id="@+id/constraint_guideline_horizontal_085"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.85"/>
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/constraint_guideline_horizontal_095"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
@@ -99,12 +112,12 @@
             android:background="#CC2424"
             android:gravity="center"
             android:textColor="@color/white"
-            android:textSize="20sp"
+            android:textSize="10sp"
             android:text="GPS"
             android:layout_width="100dp"
             android:layout_height="100dp"
-            app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_2"
-            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_04"
+            app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_04"
+            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_020"
             />
 
         <TextView
@@ -116,8 +129,8 @@
             android:text="Lin. Pos."
             android:layout_width="100dp"
             android:layout_height="100dp"
-            app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_2"
-            app:layout_constraintLeft_toLeftOf="@id/constraint_guideline_vertical_06"
+            app:layout_constraintTop_toTopOf="@id/constraint_guideline_horizontal_06"
+            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_020"
             />
 
         <TextView
@@ -125,8 +138,8 @@
             android:layout_width="10dp"
             android:layout_height="10dp"
             android:background="@color/design_default_color_secondary_variant"
-            app:layout_constraintTop_toBottomOf="@id/constraint_guideline_horizontal_2"
-            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_06"
+            app:layout_constraintBottom_toTopOf="@id/constraint_guideline_horizontal_085"
+            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_005"
             />
 
         <ImageButton
@@ -137,9 +150,9 @@
             android:scaleType="fitXY"
             app:srcCompat="@drawable/ic_record"
             app:layout_constraintDimensionRatio="1:1"
-            app:layout_constraintLeft_toLeftOf="@id/constraint_guideline_vertical_04"
-            app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_5"
-            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_06" />
+            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_095"
+            app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_06"
+            app:layout_constraintTop_toTopOf="@id/constraint_guideline_horizontal_04"/>
 
         <ImageButton
             android:id="@+id/cmd_take_img"
@@ -149,9 +162,21 @@
             android:scaleType="fitXY"
             app:srcCompat="@drawable/ic_record_img"
             app:layout_constraintDimensionRatio="1:1"
-            app:layout_constraintLeft_toLeftOf="@id/constraint_guideline_vertical_005"
-            app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_5"
-            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_020" />
+            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_095"
+            app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_095"
+            app:layout_constraintTop_toTopOf="@id/constraint_guideline_horizontal_085"/>
+
+        <ImageButton
+            android:id="@+id/cmd_change_resolution"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@null"
+            android:scaleType="fitXY"
+            app:srcCompat="@drawable/ic_resolution"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_095"
+            app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_015"
+            app:layout_constraintTop_toTopOf="@id/constraint_guideline_horizontal_005"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
