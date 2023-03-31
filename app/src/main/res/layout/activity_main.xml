@@ -178,6 +178,30 @@
             app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_015"
             app:layout_constraintTop_toTopOf="@id/constraint_guideline_horizontal_005"/>
 
+        <ImageButton
+        android:id="@+id/cmd_add_comment"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@null"
+        android:scaleType="fitXY"
+        app:srcCompat="@drawable/ic_comment"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_06"
+        app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_015"
+        app:layout_constraintTop_toTopOf="@id/constraint_guideline_horizontal_005"/>
+
+        <ImageButton
+            android:id="@+id/cmd_add_text"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@null"
+            android:scaleType="fitXY"
+            app:srcCompat="@drawable/ic_comment_text"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_04"
+            app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_015"
+            app:layout_constraintTop_toTopOf="@id/constraint_guideline_horizontal_005"/>
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </RelativeLayout>

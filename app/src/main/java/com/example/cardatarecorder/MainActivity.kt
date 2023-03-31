@@ -26,6 +26,7 @@ import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.util.Log
 import android.view.WindowManager
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
@@ -68,6 +69,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     private lateinit var cmd_start_record: ImageButton
     private lateinit var cmd_take_img: ImageButton
     private lateinit var cmd_change_resolution: ImageButton
+    private lateinit var cmd_add_comment: ImageButton
+    private lateinit var cmd_add_text: ImageButton
 
     //private lateinit var cameraExecutor: ExecutorService
 
@@ -89,6 +92,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         cmd_take_img = findViewById(R.id.cmd_take_img)
         preview_view = findViewById(R.id.preview_view)
         cmd_change_resolution = findViewById(R.id.cmd_change_resolution)
+        cmd_add_comment = findViewById(R.id.cmd_add_comment)
+        cmd_add_text = findViewById(R.id.cmd_add_text)
 
         // setup sensors
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -108,6 +113,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         cmd_take_img.setOnClickListener{takePhoto()}
         cmd_start_record.setOnClickListener {captureVideo()}
         cmd_change_resolution.setOnClickListener {change_resolution()}
+        cmd_add_comment.setOnClickListener {add_comment()}
+        cmd_add_text.setOnClickListener {add_text()}
 
         // set up GPS
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -117,6 +124,72 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         else {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 5f, this)
         }
+
+    }
+
+    private fun add_text() {
+        sensor_entry.comment = "text"
+        val selectedItems = ArrayList<Int>() // Where we track the selected items
+        val builder = AlertDialog.Builder(this)
+        var final_text = "text: "
+        // Set the dialog title
+        var editText = EditText(this)
+        builder.setTitle("Set Comment")
+            .setView(editText)
+
+            // Set the action buttons
+            .setPositiveButton("ok",
+                DialogInterface.OnClickListener { dialog, id ->
+                    // User clicked OK, so save the selectedItems results somewhere
+                    // or return them to the component that opened the dialog
+                    final_text += editText.text
+
+                    Log.d(TAG, "Selected ${final_text}")
+                    sensor_entry.comment = final_text
+                })
+            .setNegativeButton("cancel",
+                DialogInterface.OnClickListener { dialog, id ->
+                })
+
+        builder.show()
+
+    }
+
+    private fun add_comment() {
+        sensor_entry.comment = "comment"
+        val selectedItems = ArrayList<Int>() // Where we track the selected items
+        val builder = AlertDialog.Builder(this)
+        val comments = arrayOf("TrafficSigns ","Lanes ","Objects ","EgoBehaviour ")
+        var final_comment = "comment: "
+        // Set the dialog title
+        builder.setTitle("Set Comment")
+
+            .setMultiChoiceItems(comments, null,
+                DialogInterface.OnMultiChoiceClickListener { dialog, which, isChecked ->
+                    if (isChecked) {
+                        // If the user checked the item, add it to the selected items
+                        selectedItems.add(which)
+                    } else if (selectedItems.contains(which)) {
+                        // Else, if the item is already in the array, remove it
+                        selectedItems.remove(which)
+                    }
+                })
+            // Set the action buttons
+            .setPositiveButton("ok",
+                DialogInterface.OnClickListener { dialog, id ->
+                    // User clicked OK, so save the selectedItems results somewhere
+                    // or return them to the component that opened the dialog
+                    for(i in selectedItems) {
+                        final_comment += comments[i]
+                    }
+                    Log.d(TAG, "Selected ${final_comment}")
+                    sensor_entry.comment = final_comment
+                })
+            .setNegativeButton("cancel",
+                DialogInterface.OnClickListener { dialog, id ->
+                })
+
+        builder.show()
 
     }
 
@@ -383,7 +456,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             linear.text = "[${lin_acc[0].toInt()}, ${lin_acc[1].toInt()}, ${lin_acc[2].toInt()}]"
 
             // data to record
-            sensor_entry = sensor_data(event.timestamp, lin_acc[0], lin_acc[1], lin_acc[2], 0, 0, 0f,0f, 0f)
+            sensor_entry = sensor_data(event.timestamp, lin_acc[0], lin_acc[1], lin_acc[2], 0, 0, 0f,0f, 0f,"")
 
         }
     }
@@ -410,8 +483,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                 // get csv from list: list_sensor_entry.joinToString{it -> "\'${it.accel_x}\'"}
                 //list_sensor_entry.joinToString{it -> "\'${it.accel_x}\',\'${it.accel_y}\'\n"}
                 // see https://medium.com/@SindkarP/a-simple-use-of-jointostring-kotlin-function-to-get-comma-separated-strings-for-sqlite-cbece2bcb499
-                val str_header = "Timestamp, Accel. x, Accel. y, Accel. z, Timestamp Video, Frame No., Longitude, Latitude, Speed\n"
-                val str_csv = list_sensor_entry.joinToString(separator = "\n"){entry -> "${entry.timestamp},${entry.accel_x},${entry.accel_y},${entry.accel_z},${entry.timestamp_videoframe},${entry.frame},${entry.long},${entry.lat},${entry.speed}"}
+                val str_header = "timestamp,accel_x,accel_y,accel_z,timestamp_video,frame_no,longitude,latitude,speed,comment\n"
+                val str_csv = list_sensor_entry.joinToString(separator = "\n"){entry -> "${entry.timestamp},${entry.accel_x},${entry.accel_y},${entry.accel_z},${entry.timestamp_videoframe},${entry.frame},${entry.long},${entry.lat},${entry.speed},${entry.comment}"}
 
                 writer?.write(str_header + str_csv)
                 writer?.close()
@@ -498,10 +571,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             var frame: Long,
             var long: Float,
             var lat: Float,
-            var speed: Float
+            var speed: Float,
+            var comment: String
         )
 
-        private var sensor_entry = sensor_data(0,0f,0f,0f,0, 0, 0f, 0f, 0f)
+        private var sensor_entry = sensor_data(0,0f,0f,0f,0, 0, 0f, 0f, 0f, "")
         private var list_sensor_entry = mutableListOf<sensor_data>()
         private var frame_number: Long = 0
         private var start_frame: Long = 0
