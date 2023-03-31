@@ -28,6 +28,7 @@ import android.util.Log
 import android.view.WindowManager
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
@@ -48,6 +49,7 @@ import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
+import kotlin.math.roundToLong
 
 // tutorial see https://developer.android.com/codelabs/camerax-getting-started#1
 
@@ -58,7 +60,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     private lateinit var txt_gps: TextView
     private lateinit var lin_pos: TextView
     private lateinit var linear: TextView
+    private lateinit var txt_info: TextView
     private var mLinear: Sensor? = null
+    private var mLight: Sensor? = null
     private val grav: FloatArray = FloatArray(3)
 
     // camera stuff
@@ -71,6 +75,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     private lateinit var cmd_change_resolution: ImageButton
     private lateinit var cmd_add_comment: ImageButton
     private lateinit var cmd_add_text: ImageButton
+    private lateinit var prg_Speed: ProgressBar
+    private lateinit var txt_prg_Speed: TextView
 
     //private lateinit var cameraExecutor: ExecutorService
 
@@ -87,6 +93,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         txt_gps = findViewById(R.id.gps)
         lin_pos = findViewById(R.id.linear_pos)
         linear = findViewById(R.id.linear)
+        txt_info = findViewById(R.id.info)
 
         cmd_start_record = findViewById(R.id.cmd_start_record)
         cmd_take_img = findViewById(R.id.cmd_take_img)
@@ -95,9 +102,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         cmd_add_comment = findViewById(R.id.cmd_add_comment)
         cmd_add_text = findViewById(R.id.cmd_add_text)
 
+        prg_Speed = findViewById(R.id.prgSpeed_GPS)
+        txt_prg_Speed = findViewById(R.id.progress_tv)
+
         // setup sensors
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         mLinear = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)?.also {
+            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+        mLight = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)?.also {
             sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL)
         }
 
@@ -408,6 +421,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     override fun onResume() {
         super.onResume()
         sensorManager.registerListener(this, mLinear, SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL)
+        sensorManager.registerListener(this, mLight, SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_NORMAL)
     }
 
     override fun onPause() {
@@ -438,11 +452,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             lin_acc[2] = yaw - grav[2]
 
             linear.apply{
-                rotationX = pitch * 3f
-                rotationY = roll * 3f
+                rotationY = pitch * 3f
+                rotationX = roll * 3f
                 rotation = -roll
-                translationX = roll * -10
-                translationY = pitch * 10
+                translationY = roll * -10
+                translationX = pitch * 10
             }
 
             lin_pos.apply{
@@ -450,14 +464,19 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                 translationY = lin_acc[2] * 10f
             }
 
-            val color = if(pitch.toInt() == 9 && roll.toInt() == 0) Color.GREEN else Color.RED
+            //val color = if(pitch.toInt() == 9 && roll.toInt() == 0) Color.GREEN else Color.RED
+            val color = if(roll.toInt() == 9 && pitch.toInt() == 0) Color.GREEN else Color.RED
             linear.setBackgroundColor(color)
             //square.text = "up/down ${pitch.toInt()}\nleft/right ${roll.toInt()}"
             linear.text = "[${lin_acc[0].toInt()}, ${lin_acc[1].toInt()}, ${lin_acc[2].toInt()}]"
 
             // data to record
-            sensor_entry = sensor_data(event.timestamp, lin_acc[0], lin_acc[1], lin_acc[2], 0, 0, 0f,0f, 0f,"")
+            sensor_entry = sensor_data(event.timestamp, lin_acc[0], lin_acc[1], lin_acc[2], 0, 0, 0f,0f, 0f, 0f,"")
 
+        }
+        else if (event?.sensor?.type == Sensor.TYPE_LIGHT) {
+            sensor_entry.light = event.values[0]
+            txt_info.text = "Light: ${sensor_entry.light}"
         }
     }
 
@@ -483,8 +502,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                 // get csv from list: list_sensor_entry.joinToString{it -> "\'${it.accel_x}\'"}
                 //list_sensor_entry.joinToString{it -> "\'${it.accel_x}\',\'${it.accel_y}\'\n"}
                 // see https://medium.com/@SindkarP/a-simple-use-of-jointostring-kotlin-function-to-get-comma-separated-strings-for-sqlite-cbece2bcb499
-                val str_header = "timestamp,accel_x,accel_y,accel_z,timestamp_video,frame_no,longitude,latitude,speed,comment\n"
-                val str_csv = list_sensor_entry.joinToString(separator = "\n"){entry -> "${entry.timestamp},${entry.accel_x},${entry.accel_y},${entry.accel_z},${entry.timestamp_videoframe},${entry.frame},${entry.long},${entry.lat},${entry.speed},${entry.comment}"}
+                val str_header = "timestamp,accel_x,accel_y,accel_z,timestamp_video,frame_no,longitude,latitude,speed,light,comment\n"
+                val str_csv = list_sensor_entry.joinToString(separator = "\n"){entry -> "${entry.timestamp},${entry.accel_x},${entry.accel_y},${entry.accel_z},${entry.timestamp_videoframe},${entry.frame},${entry.long},${entry.lat},${entry.speed},${entry.light},${entry.comment}"}
 
                 writer?.write(str_header + str_csv)
                 writer?.close()
@@ -572,10 +591,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             var long: Float,
             var lat: Float,
             var speed: Float,
+            var light: Float,
             var comment: String
         )
 
-        private var sensor_entry = sensor_data(0,0f,0f,0f,0, 0, 0f, 0f, 0f, "")
+        private var sensor_entry = sensor_data(0,0f,0f,0f,0, 0, 0f, 0f, 0f,  0f,"")
         private var list_sensor_entry = mutableListOf<sensor_data>()
         private var frame_number: Long = 0
         private var start_frame: Long = 0
@@ -588,6 +608,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         sensor_entry.speed = p0.speed
 
         txt_gps.setText("Long: ${sensor_entry.long}\n Lat: ${sensor_entry.lat}\n speed: ${sensor_entry.speed}")
+        txt_prg_Speed.setText(String.format("%.2f", sensor_entry.speed))
+        prg_Speed.progress = ((sensor_entry.speed / 250) * 80).toInt()
     }
 
 }

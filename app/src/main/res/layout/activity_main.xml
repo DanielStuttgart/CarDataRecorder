@@ -71,6 +71,13 @@
             app:layout_constraintGuide_percent="0.15"/>
 
         <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/constraint_guideline_horizontal_0275"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.275"/>
+
+        <androidx.constraintlayout.widget.Guideline
             android:id="@+id/constraint_guideline_horizontal_04"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -83,6 +90,13 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             app:layout_constraintGuide_percent="0.6"/>
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/constraint_guideline_horizontal_0725"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.725"/>
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/constraint_guideline_horizontal_085"
@@ -109,27 +123,43 @@
 
         <TextView
             android:id="@+id/gps"
-            android:background="#CC2424"
+            android:background="#4B1C71"
             android:gravity="center"
             android:textColor="@color/white"
             android:textSize="10sp"
-            android:text="GPS"
+            android:text="\nGPS\n"
             android:layout_width="100dp"
-            android:layout_height="100dp"
-            app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_04"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_015"
+            app:layout_constraintTop_toBottomOf="@id/constraint_guideline_horizontal_005"
+            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_020"
+            />
+
+        <TextView
+            android:id="@+id/info"
+            android:background="#4B1C71"
+            android:gravity="center"
+            android:textColor="@color/white"
+            android:textSize="10sp"
+            android:text="\nInfo\n"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/constraint_guideline_horizontal_015"
+            app:layout_constraintBottom_toTopOf="@id/constraint_guideline_horizontal_0275"
             app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_020"
             />
 
         <TextView
             android:id="@+id/linear"
-            android:background="#CC2424"
+            android:background="#4B1C71"
             android:gravity="center"
             android:textColor="@color/white"
-            android:textSize="20sp"
-            android:text="Lin. Pos."
+            android:textSize="10sp"
+            android:text="\nLin. Pos.\n"
             android:layout_width="100dp"
-            android:layout_height="100dp"
-            app:layout_constraintTop_toTopOf="@id/constraint_guideline_horizontal_06"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/constraint_guideline_horizontal_0275"
+            app:layout_constraintBottom_toTopOf="@id/constraint_guideline_horizontal_04"
             app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_020"
             />
 
@@ -138,7 +168,7 @@
             android:layout_width="10dp"
             android:layout_height="10dp"
             android:background="@color/design_default_color_secondary_variant"
-            app:layout_constraintBottom_toTopOf="@id/constraint_guideline_horizontal_085"
+            app:layout_constraintBottom_toTopOf="@id/constraint_guideline_horizontal_04"
             app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_005"
             />
 
@@ -201,6 +231,33 @@
             app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_04"
             app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_015"
             app:layout_constraintTop_toTopOf="@id/constraint_guideline_horizontal_005"/>
+
+        <ProgressBar
+            android:id="@+id/prgSpeed_GPS"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminateOnly="false"
+            android:progressDrawable="@drawable/pb_circular_determinative"
+            tools:progress="80"
+            android:text="70%"
+            app:layout_constraintTop_toBottomOf="@id/constraint_guideline_horizontal_04"
+            app:layout_constraintBottom_toTopOf="@id/constraint_guideline_horizontal_06"
+            app:layout_constraintRight_toLeftOf="@id/constraint_guideline_vertical_020"
+            app:layout_constraintLeft_toRightOf="@id/constraint_guideline_vertical_005"/>
+
+        <TextView
+            android:id="@+id/progress_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@color/black"
+            app:layout_constraintBottom_toBottomOf="@+id/prgSpeed_GPS"
+            app:layout_constraintEnd_toEndOf="@+id/prgSpeed_GPS"
+            app:layout_constraintStart_toStartOf="@+id/prgSpeed_GPS"
+            app:layout_constraintTop_toTopOf="@+id/prgSpeed_GPS"
+            android:text="0 m/s"
+            android:textSize="10sp"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
