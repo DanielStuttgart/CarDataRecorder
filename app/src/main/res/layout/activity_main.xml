@@ -121,6 +121,11 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintBottom_toBottomOf="parent" />
 
+        <com.example.cardatarecorder.OverlayView
+            android:id="@+id/overlay_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
         <TextView
             android:id="@+id/gps"
             android:background="#4B1C71"
@@ -258,6 +263,30 @@
             app:layout_constraintTop_toTopOf="@+id/prgSpeed_GPS"
             android:text="0 m/s"
             android:textSize="10sp"/>
+
+        <ImageButton
+            android:id="@+id/cmd_enable_ai"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@null"
+            android:scaleType="fitXY"
+            app:srcCompat="@drawable/ic_ai"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_04"
+            app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_095"
+            app:layout_constraintTop_toTopOf="@id/constraint_guideline_horizontal_085"/>
+
+        <ImageButton
+            android:id="@+id/cmd_enable_obd"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:background="@null"
+            android:scaleType="fitXY"
+            app:srcCompat="@drawable/ic_obd"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_06"
+            app:layout_constraintBottom_toBottomOf="@id/constraint_guideline_horizontal_095"
+            app:layout_constraintTop_toTopOf="@id/constraint_guideline_horizontal_085"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
