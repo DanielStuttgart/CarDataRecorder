@@ -4,7 +4,6 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
-import android.app.PendingIntent.getActivity
 import android.bluetooth.*
 import android.content.*
 import android.content.pm.PackageManager
@@ -34,7 +33,6 @@ import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
-import androidx.fragment.app.FragmentActivity
 import org.tensorflow.lite.gpu.CompatibilityList
 import org.tensorflow.lite.support.image.ImageProcessor
 import org.tensorflow.lite.support.image.TensorImage
@@ -78,6 +76,13 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     private lateinit var cmd_enable_obd: ImageButton
     private lateinit var prg_Speed: ProgressBar
     private lateinit var txt_prg_Speed: TextView
+    private lateinit var prg_obdSpeed: ProgressBar
+    private lateinit var txt_prg_obdSpeed: TextView
+    private lateinit var prg_obdRPM: ProgressBar
+    private lateinit var txt_prg_obdRPM: TextView
+    private lateinit var prg_obdThrottle: ProgressBar
+    private lateinit var txt_prg_obdThrottle: TextView
+    private lateinit var txt_bluetooth: TextView
 
     private lateinit var locationManager: LocationManager
     private lateinit var objectDetector: ObjectDetector
@@ -88,7 +93,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private lateinit var bluetoothChatService: BluetoothChatService
     // uuid from https://www.uuidgenerator.net/
-    private val MY_UUID: UUID = UUID.fromString("e4332dbc-cd3f-4323-8d6a-70c604d90659")
 
     private lateinit var overlay: OverlayView
 
@@ -117,6 +121,13 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
 
         prg_Speed = findViewById(R.id.prgSpeed_GPS)
         txt_prg_Speed = findViewById(R.id.progress_tv)
+        prg_obdRPM = findViewById(R.id.prgSpeed_obdRPM)
+        txt_prg_obdRPM = findViewById(R.id.progress_tv_obdRPM)
+        prg_obdSpeed = findViewById(R.id.prgSpeed_obdSpeed)
+        txt_prg_obdSpeed = findViewById(R.id.progress_tv_obdSpeed)
+        prg_obdThrottle = findViewById(R.id.prgSpeed_obdThrottle)
+        txt_prg_obdThrottle = findViewById(R.id.progress_tv_obdThrottle)
+        txt_bluetooth = findViewById(R.id.txtBluetooth)
 
         // setup sensors
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
@@ -143,6 +154,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         cmd_add_text.setOnClickListener {add_text()}
         cmd_enable_ai.setOnClickListener {enable_ai()}
         cmd_enable_obd.setOnClickListener{enable_obd()}
+        txt_bluetooth.setOnClickListener{get_obd_information()}
 
         // set up GPS
         locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -153,6 +165,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 2000, 5f, this)
         }
 
+    }
+
+    // get vehicle information with obd
+    private fun get_obd_information() {
+        sendMessage("0902")     // VIN number
     }
 
     // function to connect with bluetooth
@@ -220,9 +237,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         bluetoothChatService = BluetoothChatService(this, mHandler)
         val device : BluetoothDevice = bluetoothAdapter.getRemoteDevice(chosen_bluetooth_adr)
         bluetoothChatService.connect(device, true)
+        //bluetoothChatService.connect(device, false)
     }
 
-    class Own_handler : Handler() {
+    //class Own_handler : Handler() {
+    class Own_handler : Handler(Looper.getMainLooper()) {
         // constants used within this class
         // Message types sent from the BluetoothChatService Handler
         var MESSAGE_STATE_CHANGE = 1
@@ -231,54 +250,83 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         var MESSAGE_DEVICE_NAME = 4
         var MESSAGE_TOAST = 5
 
+        lateinit public var context: Context
+
         // Key names received from the BluetoothChatService Handler
         var DEVICE_NAME = "device_name"
         var TOAST = "toast"
+
+        // see here
+        // https://github.com/android/connectivity-samples/blob/master/BluetoothChat/Application/src/main/java/com/example/android/bluetoothchat/BluetoothChatFragment.java
         override fun handleMessage(msg: Message) {
+            // msg.what: STATE_Change, Read, Write, Device_name, Toast
+            // msg.arg1: BluetoothService None, Listen, Connecting, Connected
+            //Log.d(TAG, "Bluetooth Status: ${msg.what} : ${msg.arg1}")
+            //bluetooth_status = msg.arg1
             //val activity: FragmentActivity = getActivity()
             when (msg.what) {
                 MESSAGE_STATE_CHANGE -> when (msg.arg1) {
-                    BluetoothChatService.STATE_CONNECTED -> {
-                        //setStatus(getString(R.string.title_connected_to, mConnectedDeviceName))
-                        //mConversationArrayAdapter.clear()
-                    }
-                    /*BluetoothChatService.STATE_CONNECTING -> setStatus(R.string.title_connecting)
-                    BluetoothChatService.STATE_LISTEN, BluetoothChatService.STATE_NONE -> setStatus(
-                        R.string.title_not_connected
-                    )*/
+                    BluetoothChatService.STATE_CONNECTED -> bluetooth_status = BluetoothChatService.STATE_CONNECTED
+                    BluetoothChatService.STATE_CONNECTING -> bluetooth_status = BluetoothChatService.STATE_CONNECTING
+                    BluetoothChatService.STATE_LISTEN -> bluetooth_status = BluetoothChatService.STATE_LISTEN
+                    BluetoothChatService.STATE_NONE -> bluetooth_status = BluetoothChatService.STATE_NONE
                 }
                 MESSAGE_WRITE -> {
                     val writeBuf = msg.obj as ByteArray
                     // construct a string from the buffer
                     val writeMessage = String(writeBuf)
                     //mConversationArrayAdapter.add("Me:  $writeMessage")
+                    Log.d(TAG, "Write Message: ${writeMessage}")
                 }
                 MESSAGE_READ -> {
                     val readBuf = msg.obj as ByteArray
                     // construct a string from the valid bytes in the buffer
                     val readMessage = String(readBuf, 0, msg.arg1)
-                    //mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage)
+                    val strMessage = readBuf.toString()
+                    Log.d(TAG, "Read Message: ${readMessage}")
+
+                    // evaluate Bluetooth message
+                    setBluetoothMessage(readMessage)
                 }
                 MESSAGE_DEVICE_NAME -> {
-                    // save the connected device's name
-                    //mConnectedDeviceName = msg.getData().getString(Constants.DEVICE_NAME)
-                    /*if (null != activity) {
-                        Toast.makeText(
-                            activity, "Connected to "
-                                    + mConnectedDeviceName, Toast.LENGTH_SHORT
-                        ).show()
-                    }*/
+                    // could do sth like storing device name
                 }
-                /*MESSAGE_TOAST -> if (null != activity) {
-                    Toast.makeText(
-                        activity, msg.getData().getString(TOAST),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }*/
             }
         }
     }
 
+    /**
+     * Sends a message.
+     *
+     * @param message A string of text to send.
+     */
+    private fun sendMessage(byteArray: ByteArray) {
+        // Check that we're actually connected before trying anything
+        if (bluetoothChatService.getState() !== BluetoothChatService.STATE_CONNECTED) {
+            //Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // send byte array via Bluetooth
+        bluetoothChatService.write(byteArray)
+    }
+
+    private fun sendMessage(msg: String) {
+        // need to be connected to a device, otherwise return
+        if (bluetoothChatService.getState() !== BluetoothChatService.STATE_CONNECTED) {
+            //Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        // Check that there's actually something to send
+        if (msg.isNotEmpty()) {
+            //msg.trim {it <= ' '}
+            //var a = msg.trim {it <= ' '}
+            // Get the message bytes and tell the BluetoothChatService to write
+            val byteArray = (msg!! + "\r").toByteArray()
+            bluetoothChatService.write(byteArray)
+        }
+    }
 
     // The Handler that gets information back from the BluetoothChatService
     private val mHandler: Own_handler = Own_handler()
@@ -287,16 +335,24 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     private fun enable_obd() {
         if(obd_enabled == false) {
             obd_enabled = true
-            cmd_enable_obd.setColorFilter(Color.GREEN)
+            cmd_enable_obd.setColorFilter(Color.MAGENTA)
 
+            mHandler.context = this
             init_bluetooth()
 
         } else {
             obd_enabled = false
             cmd_enable_obd.setColorFilter(Color.WHITE)
-
         }
 
+    }
+
+    fun String.decodeHex(): ByteArray {
+        check(length % 2 == 0) { "Must have an even length" }
+
+        return chunked(2)
+            .map { it.toInt(16).toByte() }
+            .toByteArray()
     }
 
     // Tutorial
@@ -354,8 +410,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         } else {
             cmd_enable_ai.setColorFilter(Color.WHITE)
             ai_enabled = false
-
-
         }
 
         startCamera()
@@ -748,6 +802,30 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     // whenever sensor (accelerometer or light) are changing, values are updated
     // and stored within sensor-entry
     override fun onSensorChanged(event: SensorEvent?) {
+        // use this callback to set connection color and ask for Bluetooth-response
+        if(bluetooth_status == BluetoothChatService.STATE_CONNECTED
+            || bluetooth_status == BluetoothChatService.STATE_LISTEN) {
+            cmd_enable_obd.setColorFilter(Color.GREEN)
+            Log.d(TAG, "Start Bluetooth: ${bluetooth_status}")
+            sendMessage("010C0D49")     // 01: Mode, 0C: RPM, 0D: Speed, 49: driving pedal
+        } else {
+            cmd_enable_obd.setColorFilter(Color.WHITE)
+            Log.d("BL", "Bluetooth Status: ${bluetooth_status}")
+        }
+
+        // set bluetooth text and other elements
+        txt_bluetooth.text = "BT Status: ${bluetooth_status}"
+        if(obd_enabled == true) {
+            txt_prg_obdSpeed.text = "${obd_speed}\nkm/h"
+            txt_prg_obdRPM.text = "${obd_rpm}\nrpm"
+            txt_prg_obdThrottle.text = "${obd_throttle}\n%"
+            prg_obdSpeed.progress = (obd_speed * 100 / 250).toInt()
+            prg_obdRPM.progress = (obd_rpm * 100 / 10000).toInt()
+            prg_obdThrottle.progress = obd_throttle.toInt()
+
+        }
+
+        // handle accelerometer event
         if (event?.sensor?.type == Sensor.TYPE_ACCELEROMETER) {
             val roll = event.values[0]     // sides
             val pitch = event.values[1]    // upDown
@@ -782,9 +860,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             linear.text = "[${lin_acc[0].toInt()}, ${lin_acc[1].toInt()}, ${lin_acc[2].toInt()}]"
 
             // data to record
-            sensor_entry = sensor_data(event.timestamp, lin_acc[0], lin_acc[1], lin_acc[2], 0, 0, 0f,0f, 0f, 0f,"")
+            sensor_entry = sensor_data(event.timestamp, lin_acc[0], lin_acc[1], lin_acc[2], 0, 0, 0f,0f, 0f, 0f,"", obd_speed, obd_rpm, obd_throttle)
 
         }
+
+        // handle light events
         else if (event?.sensor?.type == Sensor.TYPE_LIGHT) {
             sensor_entry.light = event.values[0]
             txt_info.text = "Light: ${sensor_entry.light}"
@@ -812,8 +892,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                 // get csv from list: list_sensor_entry.joinToString{it -> "\'${it.accel_x}\'"}
                 //list_sensor_entry.joinToString{it -> "\'${it.accel_x}\',\'${it.accel_y}\'\n"}
                 // see https://medium.com/@SindkarP/a-simple-use-of-jointostring-kotlin-function-to-get-comma-separated-strings-for-sqlite-cbece2bcb499
-                val str_header = "timestamp,accel_x,accel_y,accel_z,timestamp_video,frame_no,longitude,latitude,speed,light,comment\n"
-                val str_csv = list_sensor_entry.joinToString(separator = "\n"){entry -> "${entry.timestamp},${entry.accel_x},${entry.accel_y},${entry.accel_z},${entry.timestamp_videoframe},${entry.frame},${entry.long},${entry.lat},${entry.speed},${entry.light},${entry.comment}"}
+                val str_header = "timestamp,accel_x,accel_y,accel_z,timestamp_video,frame_no,longitude,latitude,speed,light,comment,obd_speed,obd_rpm,obd_throttle\n"
+                val str_csv = list_sensor_entry.joinToString(separator = "\n"){entry -> "${entry.timestamp},${entry.accel_x},${entry.accel_y},${entry.accel_z},${entry.timestamp_videoframe},${entry.frame},${entry.long},${entry.lat},${entry.speed},${entry.light},${entry.comment},${entry.obd_speed},${entry.obd_rpm},${entry.obd_throttle}"}
 
                 writer?.write(str_header + str_csv)
                 writer?.close()
@@ -909,10 +989,13 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
             var lat: Float,
             var speed: Float,
             var light: Float,
-            var comment: String
+            var comment: String,
+            var obd_speed: Int,
+            var obd_rpm: Int,
+            var obd_throttle: Int
         )
 
-        private var sensor_entry = sensor_data(0,0f,0f,0f,0, 0, 0f, 0f, 0f,  0f,"")
+        private var sensor_entry = sensor_data(0,0f,0f,0f,0, 0, 0f, 0f, 0f,  0f,"", 0, 0, 0)
         private var list_sensor_entry = mutableListOf<sensor_data>()
         private var frame_number: Long = 0
         private var start_frame: Long = 0
@@ -921,6 +1004,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         private var chosen_bluetooth_adr = ""
         private var ai_enabled = false
         private var obd_enabled = false
+        private var bluetooth_status: Int = -1
+        private var obd_speed = 0
+        private var obd_rpm = 0
+        private var obd_throttle = 0
+        private var obd_vin = ""
+        private var bluetooth_msg: ArrayList<ByteArray> = ArrayList<ByteArray>()
 
         const val DELEGATE_CPU = 0
         const val DELEGATE_GPU = 1
@@ -929,6 +1018,71 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         const val MODEL_EFFICIENTDETV0 = 1
         const val MODEL_EFFICIENTDETV1 = 2
         const val MODEL_EFFICIENTDETV2 = 3
+
+        private fun setStatus(status: Int) {
+            //val activity: FragmentActivity = getActivity() ?: return
+            //val actionBar = activity.actionBar ?: return
+            //actionBar.setSubtitle(resId)
+            Log.d(TAG, "Bluetooth Status: ${status.toString()}")
+
+            /*when (status) {
+                BluetoothChatService.STATE_CONNECTED -> cmd*/
+        }
+
+        // decode bluetooth message from String
+        private fun setBluetoothMessage(msg: String) {
+            var data_received = ""
+            if(msg.matches(".*[0-9A-Fa-f]{2}.*".toRegex())) {
+                data_received = msg.trim()
+                Log.v(TAG, "Data received: ${data_received}")
+                val data = data_received.split(" ".toRegex())
+
+                var i = 0
+                while(i < data.size) {
+                    if(i == 0) {
+
+                    } else {
+                        if(data[i] == "0D") {
+                            if(i+1 < data.size) {
+                                obd_speed = data[i+1].toInt(16)
+                                Log.d("OBD", "Received speed: ${obd_speed}")
+                            }
+                        }
+                        if(data[i] == "0C") {
+                            if(i+2 < data.size) {
+                                obd_rpm = (256 * data[i+1].toInt(16) + data[i+2].toInt(16)) / 4
+                                Log.d("OBD", "Received rpm: ${obd_rpm}")
+                            }
+                        }
+                        if(data[i] == "11") {       // Throttle
+                            if(i+1 < data.size) {
+                                obd_throttle = (data[i+1].toInt(16) * 100 / 255).toInt()
+                                Log.d("OBD", "Received throttle: ${obd_throttle}")
+                            }
+                        }
+                        if(data[i] == "49") {       // Accelerator Paddle (abs: 49 ff, rel.: 5A
+                            if(i+1 < data.size) {
+                                obd_throttle = (data[i+1].toInt(16) * 100 / 255).toInt()
+                                Log.d("OBD", "Received throttle: ${obd_throttle}")
+                            }
+                        }
+                        if(data[i] == "02") {       // vehicle VIN from service 09
+                            if (i + 17 < data.size) {
+                                obd_vin = data.subList(i + 1, i + 17).toString()
+                                Log.d("OBD", "Recieved VIN: ${obd_vin}")
+                            }
+                        }
+                    }
+                    i++
+
+                        /*if(i % 2 == 0) {     // even
+
+                    } else {                    // odd
+
+                    }*/
+                }
+            }
+        }
 
     }
 

@@ -30,6 +30,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
 import java.util.UUID;
 
 // class taken from https://raw.githubusercontent.com/android/connectivity-samples/master/BluetoothChat/Application/src/main/java/com/example/android/bluetoothchat/BluetoothChatService.java
@@ -67,6 +68,7 @@ public class BluetoothChatService {
     // Member fields
     private final BluetoothAdapter mAdapter;
     private final Handler mHandler;
+    private BluetoothDevice mDevice;
     private AcceptThread mSecureAcceptThread;
     private AcceptThread mInsecureAcceptThread;
     private ConnectThread mConnectThread;
@@ -159,11 +161,44 @@ public class BluetoothChatService {
     /**
      * Start the ConnectThread to initiate a connection to a remote device.
      *
+     * fixed variable device The BluetoothDevice to connect
+     * fixed variable secure Socket Security type - Secure (true) , Insecure (false)
+     */
+    public synchronized void reconnect() {
+        Log.d(TAG, "reconnect to: " + mDevice);
+
+        // Cancel any thread attempting to make a connection
+        if (mState == STATE_CONNECTING) {
+            if (mConnectThread != null) {
+                mConnectThread.cancel();
+                mConnectThread = null;
+            }
+        }
+
+        // Cancel any thread currently running a connection
+        if (mConnectedThread != null) {
+            mConnectedThread.cancel();
+            mConnectedThread = null;
+        }
+
+        // Start the thread to connect with the given device
+        mConnectThread = new ConnectThread(mDevice, true);
+        mConnectThread.start();
+        // Update UI title
+        updateUserInterfaceTitle();
+    }
+
+    /**
+     * Start the ConnectThread to initiate a connection to a remote device.
+     *
      * @param device The BluetoothDevice to connect
      * @param secure Socket Security type - Secure (true) , Insecure (false)
      */
     public synchronized void connect(BluetoothDevice device, boolean secure) {
         Log.d(TAG, "connect to: " + device);
+
+        // store device in local variable
+        mDevice = device;
 
         // Cancel any thread attempting to make a connection
         if (mState == STATE_CONNECTING) {
@@ -192,6 +227,7 @@ public class BluetoothChatService {
      * @param socket The BluetoothSocket on which the connection was made
      * @param device The BluetoothDevice that has been connected
      */
+    @SuppressLint("MissingPermission")
     public synchronized void connected(BluetoothSocket socket, BluetoothDevice
             device, final String socketType) {
         Log.d(TAG, "connected, Socket Type:" + socketType);
@@ -297,6 +333,7 @@ public class BluetoothChatService {
 
         // Start the service over to restart listening mode
         BluetoothChatService.this.start();
+        BluetoothChatService.this.mConnectedThread.start();
     }
 
     /**
@@ -312,10 +349,14 @@ public class BluetoothChatService {
 
         mState = STATE_NONE;
         // Update UI title
-        updateUserInterfaceTitle();
+        //updateUserInterfaceTitle();
 
         // Start the service over to restart listening mode
-        BluetoothChatService.this.start();
+        //BluetoothChatService.this.start();
+
+        // try to reconnect
+        Log.d("Bluetooth", "Try to reconnect to old device...");
+        this.reconnect();
     }
 
     /**
@@ -512,17 +553,33 @@ public class BluetoothChatService {
         public void run() {
             Log.i(TAG, "BEGIN mConnectedThread");
             byte[] buffer = new byte[1024];
+            char[] buffer_char = new char[1024];
+            ArrayList<Integer> list_byte = new ArrayList<Integer>();
             int bytes;
 
             // Keep listening to the InputStream while connected
             while (mState == STATE_CONNECTED) {
                 try {
                     // Read from the InputStream
-                    bytes = mmInStream.read(buffer);
+                    bytes = mmInStream.read();
+                    if(bytes == 0x0A) {          // new line
+
+                    } else if(bytes == 0x0D) {  // return value
+                        buffer = new byte[list_byte.size()];
+                        for(int i = 0; i < list_byte.size(); i++) {
+                            buffer[i] = list_byte.get(i).byteValue();
+                            buffer_char[i] = (char)list_byte.get(i).byteValue();
+                        }
+
+                        mHandler.obtainMessage(MESSAGE_READ, buffer.length, -1, buffer).sendToTarget();
+                        list_byte = new ArrayList<Integer>();
+                    } else {
+                        list_byte.add(bytes);
+                    }
+                    //bytes = mmInStream.read(buffer)
 
                     // Send the obtained bytes to the UI Activity
-                    mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer)
-                            .sendToTarget();
+                    //mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer).sendToTarget();
                 } catch (IOException e) {
                     Log.e(TAG, "disconnected", e);
                     connectionLost();
@@ -532,6 +589,7 @@ public class BluetoothChatService {
         }
 
         /**
+         *
          * Write to the connected OutStream.
          *
          * @param buffer The bytes to write
@@ -539,6 +597,8 @@ public class BluetoothChatService {
         public void write(byte[] buffer) {
             try {
                 mmOutStream.write(buffer);
+                //flush needed?
+                mmOutStream.flush();
 
                 // Share the sent message back to the UI Activity
                 mHandler.obtainMessage(MESSAGE_WRITE, -1, -1, buffer)

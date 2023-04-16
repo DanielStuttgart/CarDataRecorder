@@ -177,6 +177,20 @@
             app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_005"
             />
 
+        <TextView
+            android:id="@+id/txtBluetooth"
+            android:background="#4B1C71"
+            android:gravity="center"
+            android:textColor="@color/white"
+            android:textSize="10sp"
+            android:text="\nBluetooth\n"
+            android:layout_width="100dp"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/constraint_guideline_horizontal_085"
+            app:layout_constraintBottom_toTopOf="@id/constraint_guideline_horizontal_095"
+            app:layout_constraintRight_toRightOf="@id/constraint_guideline_vertical_020"
+            />
+
         <ImageButton
             android:id="@+id/cmd_start_record"
             android:layout_width="0dp"
@@ -261,7 +275,86 @@
             app:layout_constraintEnd_toEndOf="@+id/prgSpeed_GPS"
             app:layout_constraintStart_toStartOf="@+id/prgSpeed_GPS"
             app:layout_constraintTop_toTopOf="@+id/prgSpeed_GPS"
-            android:text="0 m/s"
+            android:text="0 \nm/s"
+            android:textSize="10sp"/>
+
+        <ProgressBar
+            android:id="@+id/prgSpeed_obdSpeed"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminateOnly="false"
+            android:progressDrawable="@drawable/pb_circular_determinative"
+            tools:progress="70"
+            android:text="70%"
+            app:layout_constraintTop_toBottomOf="@id/constraint_guideline_horizontal_06"
+            app:layout_constraintBottom_toTopOf="@id/constraint_guideline_horizontal_0725"
+            app:layout_constraintRight_toLeftOf="@id/constraint_guideline_vertical_020"
+            app:layout_constraintLeft_toRightOf="@id/constraint_guideline_vertical_005"/>
+
+        <TextView
+            android:id="@+id/progress_tv_obdSpeed"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@color/black"
+            app:layout_constraintBottom_toBottomOf="@+id/prgSpeed_obdSpeed"
+            app:layout_constraintEnd_toEndOf="@+id/prgSpeed_obdSpeed"
+            app:layout_constraintStart_toStartOf="@+id/prgSpeed_obdSpeed"
+            app:layout_constraintTop_toTopOf="@+id/prgSpeed_obdSpeed"
+            android:text="0\nkm/h"
+            android:textSize="10sp"/>
+
+        <ProgressBar
+            android:id="@+id/prgSpeed_obdRPM"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminateOnly="false"
+            android:progressDrawable="@drawable/pb_circular_determinative"
+            tools:progress="70"
+            android:text="70%"
+            app:layout_constraintTop_toBottomOf="@id/constraint_guideline_horizontal_0725"
+            app:layout_constraintBottom_toTopOf="@id/constraint_guideline_horizontal_085"
+            app:layout_constraintLeft_toRightOf="@id/constraint_guideline_vertical_005"/>
+
+        <TextView
+            android:id="@+id/progress_tv_obdRPM"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@color/black"
+            app:layout_constraintBottom_toBottomOf="@+id/prgSpeed_obdRPM"
+            app:layout_constraintEnd_toEndOf="@+id/prgSpeed_obdRPM"
+            app:layout_constraintStart_toStartOf="@+id/prgSpeed_obdRPM"
+            app:layout_constraintTop_toTopOf="@+id/prgSpeed_obdRPM"
+            android:text="0\nrpm"
+            android:textSize="10sp"/>
+
+        <ProgressBar
+            android:id="@+id/prgSpeed_obdThrottle"
+            style="?android:attr/progressBarStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:indeterminateOnly="false"
+            android:progressDrawable="@drawable/pb_circular_determinative"
+            tools:progress="70"
+            android:text="70%"
+            app:layout_constraintTop_toBottomOf="@id/constraint_guideline_horizontal_0725"
+            app:layout_constraintBottom_toTopOf="@id/constraint_guideline_horizontal_085"
+            app:layout_constraintRight_toLeftOf="@id/constraint_guideline_vertical_020" />
+
+        <TextView
+            android:id="@+id/progress_tv_obdThrottle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@color/black"
+            app:layout_constraintBottom_toBottomOf="@+id/prgSpeed_obdThrottle"
+            app:layout_constraintEnd_toEndOf="@+id/prgSpeed_obdThrottle"
+            app:layout_constraintStart_toStartOf="@+id/prgSpeed_obdThrottle"
+            app:layout_constraintTop_toTopOf="@+id/prgSpeed_obdThrottle"
+            android:text="0\n%"
             android:textSize="10sp"/>
 
         <ImageButton
