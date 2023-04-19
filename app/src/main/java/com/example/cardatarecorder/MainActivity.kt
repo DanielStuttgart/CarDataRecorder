@@ -44,6 +44,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.math.abs
 
 
 // tutorial see https://developer.android.com/codelabs/camerax-getting-started#1
@@ -170,6 +171,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     // get vehicle information with obd
     private fun get_obd_information() {
         sendMessage("0902")     // VIN number
+        //sendMessage("03??")       // DTC
     }
 
     // function to connect with bluetooth
@@ -250,6 +252,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         var MESSAGE_DEVICE_NAME = 4
         var MESSAGE_TOAST = 5
 
+        // write and read counter
+        var cntWrite = 0
+        var cntRead = 0
+
         lateinit public var context: Context
 
         // Key names received from the BluetoothChatService Handler
@@ -277,6 +283,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                     val writeMessage = String(writeBuf)
                     //mConversationArrayAdapter.add("Me:  $writeMessage")
                     Log.d(TAG, "Write Message: ${writeMessage}")
+                    cntWrite++
                 }
                 MESSAGE_READ -> {
                     val readBuf = msg.obj as ByteArray
@@ -284,6 +291,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                     val readMessage = String(readBuf, 0, msg.arg1)
                     val strMessage = readBuf.toString()
                     Log.d(TAG, "Read Message: ${readMessage}")
+                    cntRead++
 
                     // evaluate Bluetooth message
                     setBluetoothMessage(readMessage)
@@ -292,6 +300,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                     // could do sth like storing device name
                 }
             }
+        }
+
+        // get number of read attempts
+        fun get_read_counter(): Int {
+            return cntRead
+        }
+        // get number of write attempts
+        fun get_write_counter(): Int {
+            return cntWrite
         }
     }
 
@@ -802,19 +819,44 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
     // whenever sensor (accelerometer or light) are changing, values are updated
     // and stored within sensor-entry
     override fun onSensorChanged(event: SensorEvent?) {
+        var btQueueLength = 0
+        var new_current_timestamp = System.currentTimeMillis()
         // use this callback to set connection color and ask for Bluetooth-response
-        if(bluetooth_status == BluetoothChatService.STATE_CONNECTED
-            || bluetooth_status == BluetoothChatService.STATE_LISTEN) {
-            cmd_enable_obd.setColorFilter(Color.GREEN)
-            Log.d(TAG, "Start Bluetooth: ${bluetooth_status}")
-            sendMessage("010C0D49")     // 01: Mode, 0C: RPM, 0D: Speed, 49: driving pedal
+        if(bluetooth_status == BluetoothChatService.STATE_CONNECTED) {
+            //|| bluetooth_status == BluetoothChatService.STATE_LISTEN) {
+
+            // check if number of write attempts is not much higher than no. of reads
+            //btQueueLength = abs(mHandler.get_write_counter() - mHandler.get_read_counter()).toInt()
+            //val MAX_QUEUE_LENGTH = 100
+            //if(btQueueLength < MAX_QUEUE_LENGTH) {
+            //Problem: event when no new queries were sent, no answers were received in meantime
+
+            // only execute write-command to bluetooth after given time ms
+            var time_diff = new_current_timestamp - current_timestamp
+
+            // execution not more frequent than 100 ms
+            var MIN_TIME_BETWEEN_BT_QUERIES = 100
+
+            if(time_diff > MIN_TIME_BETWEEN_BT_QUERIES) {
+                cmd_enable_obd.setColorFilter(Color.GREEN)
+                Log.d(TAG, "Start Bluetooth: ${bluetooth_status}, Read: ${mHandler.get_read_counter()}, Write: ${mHandler.get_read_counter()}")
+                sendMessage("010C0D49")     // 01: Mode, 0C: RPM, 0D: Speed, 49: driving pedal
+
+                current_timestamp = new_current_timestamp   // update timestamp
+
+                //sendMessage("010C1")     // 01: Mode, 0C: RPM, 0D: Speed, 49: driving pedal
+                // idea: add a suffix for number of expected answers
+            } else {
+                Log.d(TAG, "Need to wait some more time: ${time_diff}")
+            }
+
         } else {
             cmd_enable_obd.setColorFilter(Color.WHITE)
             Log.d("BL", "Bluetooth Status: ${bluetooth_status}")
         }
 
         // set bluetooth text and other elements
-        txt_bluetooth.text = "BT Status: ${bluetooth_status}"
+        txt_bluetooth.text = "BT Status: ${bluetooth_status}\nQueue: ${btQueueLength}"
         if(obd_enabled == true) {
             txt_prg_obdSpeed.text = "${obd_speed}\nkm/h"
             txt_prg_obdRPM.text = "${obd_rpm}\nrpm"
@@ -1010,6 +1052,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
         private var obd_throttle = 0
         private var obd_vin = ""
         private var bluetooth_msg: ArrayList<ByteArray> = ArrayList<ByteArray>()
+        private var current_timestamp: Long = 0
 
         const val DELEGATE_CPU = 0
         const val DELEGATE_GPU = 1
@@ -1047,33 +1090,35 @@ class MainActivity : AppCompatActivity(), SensorEventListener, LocationListener 
                                 obd_speed = data[i+1].toInt(16)
                                 Log.d("OBD", "Received speed: ${obd_speed}")
                             }
-                        }
-                        if(data[i] == "0C") {
+                        } else if(data[i] == "0C") {
                             if(i+2 < data.size) {
                                 obd_rpm = (256 * data[i+1].toInt(16) + data[i+2].toInt(16)) / 4
                                 Log.d("OBD", "Received rpm: ${obd_rpm}")
                             }
-                        }
-                        if(data[i] == "11") {       // Throttle
+
+                            i += 2     // i needs to jump over next three bytes, since data is within two bytes
+                        } else if(data[i] == "11") {       // Throttle
                             if(i+1 < data.size) {
                                 obd_throttle = (data[i+1].toInt(16) * 100 / 255).toInt()
                                 Log.d("OBD", "Received throttle: ${obd_throttle}")
                             }
-                        }
-                        if(data[i] == "49") {       // Accelerator Paddle (abs: 49 ff, rel.: 5A
+                            i += 1      // i needs to jump over next two bytes
+                        } else if(data[i] == "49") {       // Accelerator Paddle (abs: 49 ff, rel.: 5A
                             if(i+1 < data.size) {
                                 obd_throttle = (data[i+1].toInt(16) * 100 / 255).toInt()
                                 Log.d("OBD", "Received throttle: ${obd_throttle}")
                             }
-                        }
-                        if(data[i] == "02") {       // vehicle VIN from service 09
+                            i += 1
+                        } else if(data[i] == "02") {       // vehicle VIN from service 09
                             if (i + 17 < data.size) {
                                 obd_vin = data.subList(i + 1, i + 17).toString()
                                 Log.d("OBD", "Recieved VIN: ${obd_vin}")
                             }
+                            i += 1
                         }
                     }
-                    i++
+                    i += 1      // assumption: data[i] contains PID, data[i+1] contains data
+                                // jump over next 2 bytes
 
                         /*if(i % 2 == 0) {     // even
 

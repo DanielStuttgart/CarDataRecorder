@@ -331,9 +331,20 @@ public class BluetoothChatService {
         // Update UI title
         updateUserInterfaceTitle();
 
-        // Start the service over to restart listening mode
-        BluetoothChatService.this.start();
-        BluetoothChatService.this.mConnectedThread.start();
+        // try to start connected thread
+        try {
+            if(mConnectedThread != null) {
+                // Start the service over to restart listening mode
+                BluetoothChatService.this.start();
+                BluetoothChatService.this.mConnectedThread.start();
+            }
+            else {
+                Log.d(TAG, "Connected thread not yet created - Connection Problem.");
+            }
+        } catch (IllegalThreadStateException e) {
+            Log.e(TAG, "Connected Thread: " + mConnectedThread.getName() + " start failed", e);
+        }
+
     }
 
     /**
